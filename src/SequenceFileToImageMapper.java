@@ -1,7 +1,9 @@
 import java.awt.image.BufferedImage;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.net.URI;
 
 import javax.imageio.ImageIO;
@@ -79,6 +81,14 @@ public class SequenceFileToImageMapper extends
 				// extract the feature from the grayscale image
 				// using the LTrPFeatureExtractor
 				LTrPFeatureExtractor lfe = new LTrPFeatureExtractor(grayImage);
+				lfe.extractFeature();
+				int[] featureVector = lfe.getFeatureVector();
+				String s = "";
+				for (int i = 0; i < featureVector.length; i++) {
+					s += featureVector[i] + "\t";
+					if((i+1)%59==0)
+						s+="\n";
+				}
 
 				// BufferedImage biImage = gsf.convertToBiLevel();
 				// byte[][] img = v.getBytes();
@@ -86,11 +96,16 @@ public class SequenceFileToImageMapper extends
 				// b = ImageIO.read(v);
 				// String out = getfilename(k.toString());
 				// conf = new Configuration();
-				// fs = FileSystem.get(conf);
-				// Path o = new Path(out);
-				// FSDataOutputStream os = fs.create(o);
+				String out = getfilename(k.toString()) + ".feature";
+				fs = FileSystem.get(conf);
+				Path o = new Path(out);
+				FSDataOutputStream os = fs.create(o);
+				BufferedWriter br = new BufferedWriter( new OutputStreamWriter( os, "UTF-8" ) );
+				br.write(s);
 				// ImageIO.write(biImage, "jpg", os);
-				// os.close();
+				br.close();
+				//os.close();
+				
 			}
 		} finally {
 
@@ -99,7 +114,7 @@ public class SequenceFileToImageMapper extends
 
 	String getfilename(String k) {
 		int p = k.indexOf(".jpg");
-		return (k.substring(0, p) + "bi.jpg");
+		return (k.substring(0, p));// + "bi.jpg");
 	}
 
 	int getHeightFromKey(String k) {
