@@ -162,7 +162,7 @@ public class LTrPFeatureExtractor {
 		for (int i = 1; i <= height + 1; i++) {
 			fod[i][width + 1] = (image[i - 1][width + 1] > image[i][width + 1]) ? 1
 					: 4;
-			mag[i][width + 1] = (int) Math.pow(image[i - 1][width + 1 + 1]
+			mag[i][width + 1] = (int) Math.pow(image[i - 1][width + 1]
 					- image[i][width + 1], 2);
 		}
 	}
