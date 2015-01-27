@@ -196,6 +196,7 @@ public class LTrPFeatureExtractor {
 						if (l != d) {
 							f = (tPattern[k] == l) ? 1 : 0;
 							pattern[c] = ((pattern[c] << 1) | f) & 0x000000ff;
+							c++;
 						}
 					}
 				}
