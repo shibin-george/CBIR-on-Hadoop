@@ -47,7 +47,7 @@ public class LTrPFeatureExtractor {
 		// set up the uniform patterns
 		isUniform = new boolean[256];
 		int l = uniPattern.length;
-		for (int i = 0; i < l; i++) {
+		for (int i = 0; i < 256; i++) {
 			isUniform[i] = false;
 		}
 		for (int i = 0; i < l; i++) {

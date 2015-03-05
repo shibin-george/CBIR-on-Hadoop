@@ -25,8 +25,9 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.ReflectionUtils;
 
 public class SequenceFileToImageMapper extends
-		Mapper<Object, Text, IntWritable, Text> {
+		Mapper<Object, Text, Text, Text> {
 
+	private static int reducerNumber = 0;
 	private static Log logger = LogFactory
 			.getLog(SequenceFileToImageMapper.class);
 
@@ -40,6 +41,7 @@ public class SequenceFileToImageMapper extends
 		Path path = new Path(uri);
 
 		SequenceFile.Reader reader = null;
+		
 		try {
 			reader = new SequenceFile.Reader(fs, path, conf);
 			Writable k = (Writable) ReflectionUtils.newInstance(
@@ -47,13 +49,17 @@ public class SequenceFileToImageMapper extends
 			BytesWritable v = (BytesWritable) ReflectionUtils.newInstance(
 					reader.getValueClass(), conf);
 			long position = reader.getPosition();
-			Text t = new Text();
+			Text t1 = new Text();
+			Text t2 = new Text();
 			IntWritable c = new IntWritable();
+			int numReducers = Integer.parseInt(contex.getConfiguration().get(
+					"NUM_REDUCERS"));
 			while (reader.next(k, v)) {
 				String syncSeen = reader.syncSeen() ? "*" : "";
 				c.set((int) position);
-				t.set(k.toString());
-				contex.write(c, t);
+				String r = Integer.toString(reducerNumber % numReducers);
+				reducerNumber++;
+				t1.set(k.toString() + r);
 				logger.info(position + " " + syncSeen + "\t" + k + "\t"
 						+ reader.getValueClassName());
 				position = reader.getPosition(); // beginning of next record
@@ -84,6 +90,7 @@ public class SequenceFileToImageMapper extends
 				lfe.extractFeature();
 				int[] featureVector = lfe.getFeatureVector();
 				String s = "";
+				/*
 				for (int i = 0; i < featureVector.length; i++) {
 					s += featureVector[i] + "\t";
 					if((i+1)%59==0)
@@ -105,7 +112,16 @@ public class SequenceFileToImageMapper extends
 				// ImageIO.write(biImage, "jpg", os);
 				br.close();
 				//os.close();
+				*/
+				for (int i = 0; i < featureVector.length; i++) {
+					s += featureVector[i] + "_";
+				}
+				s += "42";	//	appending a dummy value.
+							//	also, 42 is the answer to 
+							//	Life, the Universe & Everything.
 				
+				t2.set(s);
+				contex.write(t1, t2);
 			}
 		} finally {
 
