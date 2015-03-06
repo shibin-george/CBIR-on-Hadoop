@@ -2,19 +2,16 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class SeqReader {
 	// private static Log logger = LogFactory
@@ -52,8 +49,11 @@ public class SeqReader {
 		job.setReducerClass(SequenceFileToImageReducer.class);
 
 		job.setInputFormatClass(TextInputFormat.class);
-		job.setOutputFormatClass(TextOutputFormat.class);
+		//job.setOutputFormatClass(TextOutputFormat.class);
 		job.setNumReduceTasks(numOutputFiles);
+		LazyOutputFormat.setOutputFormatClass(job,
+				SequenceFileOutputFormat.class);
+		job.setPartitionerClass(SequenceFilePartitioner.class);
 		
 		for (int i = 0; i < args.length - 2; i++) {
 			// FileInputFormat.setInputPaths(job, new Path(args[i]));
