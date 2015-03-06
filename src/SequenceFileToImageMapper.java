@@ -59,8 +59,8 @@ public class SequenceFileToImageMapper extends
 				c.set((int) position);
 				String r = Integer.toString(reducerNumber % numReducers);
 				reducerNumber++;
-				t1.set(k.toString() + r);
-				logger.info(position + " " + syncSeen + "\t" + k + "\t"
+				t1.set(k.toString().split("_r_")[0] + "_r_" + r);
+				logger.info(position + " " + syncSeen + "\t" + t1.toString() + "\t"
 						+ reader.getValueClassName());
 				position = reader.getPosition(); // beginning of next record
 				BufferedImage b;
