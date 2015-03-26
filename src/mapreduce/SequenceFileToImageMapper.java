@@ -1,19 +1,16 @@
+package mapreduce;
+
 import java.awt.image.BufferedImage;
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
 import java.net.URI;
 
 import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -24,8 +21,10 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.ReflectionUtils;
 
-public class SequenceFileToImageMapper extends
-		Mapper<Object, Text, Text, Text> {
+import featureExtractor.GrayScaleFilter;
+import featureExtractor.LTrPFeatureExtractor;
+
+public class SequenceFileToImageMapper extends Mapper<Object, Text, Text, Text> {
 
 	private static int reducerNumber = 0;
 	private static Log logger = LogFactory
@@ -41,7 +40,7 @@ public class SequenceFileToImageMapper extends
 		Path path = new Path(uri);
 
 		SequenceFile.Reader reader = null;
-		
+
 		try {
 			reader = new SequenceFile.Reader(fs, path, conf);
 			Writable k = (Writable) ReflectionUtils.newInstance(
@@ -54,16 +53,16 @@ public class SequenceFileToImageMapper extends
 			IntWritable c = new IntWritable();
 			int numReducers = Integer.parseInt(contex.getConfiguration().get(
 					"NUM_REDUCERS"));
+			logger.info("num_reducers = " + numReducers);
 			while (reader.next(k, v)) {
 				String syncSeen = reader.syncSeen() ? "*" : "";
 				c.set((int) position);
 				String r = Integer.toString(reducerNumber % numReducers);
 				reducerNumber++;
 				t1.set(k.toString().split("_r_")[0] + "_r_" + r);
-				logger.info(position + " " + syncSeen + "\t" + t1.toString() + "\t"
-						+ reader.getValueClassName());
+				logger.info(position + " " + syncSeen + "\t" + t1.toString()
+						+ "\t" + reader.getValueClassName());
 				position = reader.getPosition(); // beginning of next record
-				BufferedImage b;
 				byte[] data = v.copyBytes();
 				// int h = getHeightFromKey(k.toString());
 				// int w = getWidthFromKey(k.toString());
@@ -91,35 +90,27 @@ public class SequenceFileToImageMapper extends
 				int[] featureVector = lfe.getFeatureVector();
 				String s = "";
 				/*
-				for (int i = 0; i < featureVector.length; i++) {
-					s += featureVector[i] + "\t";
-					if((i+1)%59==0)
-						s+="\n";
-				}
-
-				// BufferedImage biImage = gsf.convertToBiLevel();
-				// byte[][] img = v.getBytes();
-				// ImageInputStream in = ImageIO.createImageInputStream(v);
-				// b = ImageIO.read(v);
-				// String out = getfilename(k.toString());
-				// conf = new Configuration();
-				String out = getfilename(k.toString()) + ".feature";
-				fs = FileSystem.get(conf);
-				Path o = new Path(out);
-				FSDataOutputStream os = fs.create(o);
-				BufferedWriter br = new BufferedWriter( new OutputStreamWriter( os, "UTF-8" ) );
-				br.write(s);
-				// ImageIO.write(biImage, "jpg", os);
-				br.close();
-				//os.close();
-				*/
+				 * for (int i = 0; i < featureVector.length; i++) { s +=
+				 * featureVector[i] + "\t"; if((i+1)%59==0) s+="\n"; }
+				 * 
+				 * // BufferedImage biImage = gsf.convertToBiLevel(); //
+				 * byte[][] img = v.getBytes(); // ImageInputStream in =
+				 * ImageIO.createImageInputStream(v); // b = ImageIO.read(v); //
+				 * String out = getfilename(k.toString()); // conf = new
+				 * Configuration(); String out = getfilename(k.toString()) +
+				 * ".feature"; fs = FileSystem.get(conf); Path o = new
+				 * Path(out); FSDataOutputStream os = fs.create(o);
+				 * BufferedWriter br = new BufferedWriter( new
+				 * OutputStreamWriter( os, "UTF-8" ) ); br.write(s); //
+				 * ImageIO.write(biImage, "jpg", os); br.close(); //os.close();
+				 */
 				for (int i = 0; i < featureVector.length; i++) {
 					s += featureVector[i] + "_";
 				}
-				s += "42";	//	appending a dummy value.
-							//	also, 42 is the answer to 
-							//	Life, the Universe & Everything.
-				
+				s += "42"; // appending a dummy value.
+							// also, 42 is the answer to
+							// Life, the Universe & Everything.
+
 				t2.set(s);
 				contex.write(t1, t2);
 			}

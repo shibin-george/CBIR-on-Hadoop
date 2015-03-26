@@ -1,7 +1,13 @@
+package driver;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import mapreduce.SequenceFileToImageMapper;
+import mapreduce.SequenceFileToImagePartitioner;
+import mapreduce.SequenceFileToImageReducer;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -47,14 +53,14 @@ public class SeqReader {
 
 		job.setMapperClass(SequenceFileToImageMapper.class);
 		job.setReducerClass(SequenceFileToImageReducer.class);
-
+		job.setPartitionerClass(SequenceFileToImagePartitioner.class);
 		job.setInputFormatClass(TextInputFormat.class);
-		//job.setOutputFormatClass(TextOutputFormat.class);
+		// job.setOutputFormatClass(TextOutputFormat.class);
 		job.setNumReduceTasks(numOutputFiles);
+		
 		LazyOutputFormat.setOutputFormatClass(job,
 				SequenceFileOutputFormat.class);
-		job.setPartitionerClass(SequenceFilePartitioner.class);
-		
+
 		for (int i = 0; i < args.length - 2; i++) {
 			// FileInputFormat.setInputPaths(job, new Path(args[i]));
 			MultipleInputs.addInputPath(job, new Path(args[i]),
@@ -63,8 +69,7 @@ public class SeqReader {
 		for (int i = 0; i < numOutputFiles; i++) {
 			MultipleOutputs.addNamedOutput(job,
 					baseOutputName + "n" + Integer.toString(i),
-					SequenceFileOutputFormat.class, Text.class,
-					Text.class);
+					SequenceFileOutputFormat.class, Text.class, Text.class);
 		}
 		job.setJarByClass(SeqReader.class);
 		FileOutputFormat.setOutputPath(job, new Path(args[args.length - 1]));
