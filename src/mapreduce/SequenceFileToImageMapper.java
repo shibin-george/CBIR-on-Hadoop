@@ -4,119 +4,88 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-
 import javax.imageio.ImageIO;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.util.ReflectionUtils;
-
 import featureExtractor.GrayScaleFilter;
 import featureExtractor.LTrPFeatureExtractor;
 
-public class SequenceFileToImageMapper extends Mapper<Object, Text, Text, Text> {
+public class SequenceFileToImageMapper extends
+		Mapper<Text, BytesWritable, Text, Text> {
 
-	private static int reducerNumber = 0;
+	private static int reducerNumber = 0, numReducers, count;
 	private static Log logger = LogFactory
 			.getLog(SequenceFileToImageMapper.class);
 
-	public void map(Object key, Text value, Context contex) throws IOException,
-			InterruptedException {
-		logger.info("map method called.. " + value.toString() + "\n");
+	protected void setup(Context context) {
+		numReducers = Integer.parseInt(context.getConfiguration().get(
+				"NUM_REDUCERS"));
+		logger.info("Setup: num_reducers = " + numReducers);
+		count = 0;
+	}
 
-		String uri = value.toString();
-		Configuration conf = new Configuration();
-		FileSystem fs = FileSystem.get(URI.create(uri), conf);
-		Path path = new Path(uri);
+	protected void cleanup(Context context) {
+		logger.info("Cleanup: Total count received: " + count);
+	}
 
-		SequenceFile.Reader reader = null;
+	public void map(Text k, BytesWritable v, Context contex)
+			throws IOException, InterruptedException {
+		logger.info("map method called.. " + k.toString() + "\n");
+		count++;
+		logger.info("Total count received: " + count);
+		Text t1 = new Text();
+		Text t2 = new Text();
 
-		try {
-			reader = new SequenceFile.Reader(fs, path, conf);
-			Writable k = (Writable) ReflectionUtils.newInstance(
-					reader.getKeyClass(), conf);
-			BytesWritable v = (BytesWritable) ReflectionUtils.newInstance(
-					reader.getValueClass(), conf);
-			long position = reader.getPosition();
-			Text t1 = new Text();
-			Text t2 = new Text();
-			IntWritable c = new IntWritable();
-			int numReducers = Integer.parseInt(contex.getConfiguration().get(
-					"NUM_REDUCERS"));
-			logger.info("num_reducers = " + numReducers);
-			while (reader.next(k, v)) {
-				String syncSeen = reader.syncSeen() ? "*" : "";
-				c.set((int) position);
-				String r = Integer.toString(reducerNumber % numReducers);
-				reducerNumber++;
-				t1.set(k.toString().split("_r_")[0] + "_r_" + r);
-				logger.info(position + " " + syncSeen + "\t" + t1.toString()
-						+ "\t" + reader.getValueClassName());
-				position = reader.getPosition(); // beginning of next record
-				byte[] data = v.copyBytes();
-				// int h = getHeightFromKey(k.toString());
-				// int w = getWidthFromKey(k.toString());
+		String r = Integer.toString(reducerNumber % numReducers);
+		reducerNumber++;
+		t1.set(k.toString().split("_r_")[0] + "_r_" + r);
 
-				InputStream is = new ByteArrayInputStream(data);
-				// FSDataInputStream in = new FSDataInputStream(is);
-				// in.seek(0);
-				BufferedImage img = ImageIO.read(is);
-				int h1 = img.getHeight();
-				int w1 = img.getWidth();
-				float Bpp = (float) data.length / (h1 * w1);
-				// img.getType();
-				logger.info("\n" + img.getType() + "\t" + data.length + "\t"
-						+ Bpp + " BytesPerPixel" + "\t" + h1 + " X " + w1);
+		byte[] data = v.copyBytes();
+		InputStream is = new ByteArrayInputStream(data);
+		BufferedImage img = ImageIO.read(is);
+		int h1 = img.getHeight();
+		int w1 = img.getWidth();
+		float Bpp = (float) data.length / (h1 * w1);
+		logger.info("\n" + img.getType() + "\t" + data.length + "\t" + Bpp
+				+ " BytesPerPixel" + "\t" + h1 + " X " + w1);
 
-				GrayScaleFilter gsf = new GrayScaleFilter(img);
+		GrayScaleFilter gsf = new GrayScaleFilter(img);
 
-				// get the grayscale image using the filter
-				BufferedImage grayImage = gsf.convertToGrayScale();
+		// get the grayscale image using the filter
+		BufferedImage grayImage = gsf.convertToGrayScale();
 
-				// extract the feature from the grayscale image
-				// using the LTrPFeatureExtractor
-				LTrPFeatureExtractor lfe = new LTrPFeatureExtractor(grayImage);
-				lfe.extractFeature();
-				int[] featureVector = lfe.getFeatureVector();
-				String s = "";
-				/*
-				 * for (int i = 0; i < featureVector.length; i++) { s +=
-				 * featureVector[i] + "\t"; if((i+1)%59==0) s+="\n"; }
-				 * 
-				 * // BufferedImage biImage = gsf.convertToBiLevel(); //
-				 * byte[][] img = v.getBytes(); // ImageInputStream in =
-				 * ImageIO.createImageInputStream(v); // b = ImageIO.read(v); //
-				 * String out = getfilename(k.toString()); // conf = new
-				 * Configuration(); String out = getfilename(k.toString()) +
-				 * ".feature"; fs = FileSystem.get(conf); Path o = new
-				 * Path(out); FSDataOutputStream os = fs.create(o);
-				 * BufferedWriter br = new BufferedWriter( new
-				 * OutputStreamWriter( os, "UTF-8" ) ); br.write(s); //
-				 * ImageIO.write(biImage, "jpg", os); br.close(); //os.close();
-				 */
-				for (int i = 0; i < featureVector.length; i++) {
-					s += featureVector[i] + "_";
-				}
-				s += "42"; // appending a dummy value.
-							// also, 42 is the answer to
-							// Life, the Universe & Everything.
-
-				t2.set(s);
-				contex.write(t1, t2);
-			}
-		} finally {
-
+		// extract the feature from the grayscale image
+		// using the LTrPFeatureExtractor
+		LTrPFeatureExtractor lfe = new LTrPFeatureExtractor(grayImage);
+		lfe.extractFeature();
+		int[] featureVector = lfe.getFeatureVector();
+		String s = "";
+		/*
+		 * for (int i = 0; i < featureVector.length; i++) { s +=
+		 * featureVector[i] + "\t"; if((i+1)%59==0) s+="\n"; }
+		 * 
+		 * // BufferedImage biImage = gsf.convertToBiLevel(); // byte[][] img =
+		 * v.getBytes(); // ImageInputStream in =
+		 * ImageIO.createImageInputStream(v); // b = ImageIO.read(v); // String
+		 * out = getfilename(k.toString()); // conf = new Configuration();
+		 * String out = getfilename(k.toString()) + ".feature"; fs =
+		 * FileSystem.get(conf); Path o = new Path(out); FSDataOutputStream os =
+		 * fs.create(o); BufferedWriter br = new BufferedWriter( new
+		 * OutputStreamWriter( os, "UTF-8" ) ); br.write(s); //
+		 * ImageIO.write(biImage, "jpg", os); br.close(); //os.close();
+		 */
+		for (int i = 0; i < featureVector.length; i++) {
+			s += featureVector[i] + "_";
 		}
+		s += "42"; // appending a dummy value.
+					// also, 42 is the answer to
+					// Life, the Universe & Everything.
+
+		t2.set(s);
+		contex.write(t1, t2);
 	}
 
 	String getfilename(String k) {

@@ -28,13 +28,12 @@ public class SequenceFileToImageReducer extends Reducer<Text, Text, Text, Text> 
 			throws IOException, InterruptedException {
 		String filename = getFilenameFromKey(key);
 		key.set(key.toString().split("_r_")[0]);
-		filename = context.getConfiguration().get("BASE_OUTPUT_FILE_NAME")
-				+ "n" + filename;
+		filename = "n" + filename;
 		int l = 0;
 
 		for (Text value : values) {
 			l++;
-			mos.write(key, value, filename);
+			mos.write(filename, key, value);
 		}
 		logger.info("received" + l + " values for key " + key);
 	}
