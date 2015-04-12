@@ -1,17 +1,20 @@
 package mapreduce;
 
+import imagefeature.GrayScaleFilter;
+import imagefeature.LTrPFeatureExtractor;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
 import javax.imageio.ImageIO;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import featureExtractor.GrayScaleFilter;
-import featureExtractor.LTrPFeatureExtractor;
 
 public class SequenceFileToImageMapper extends
 		Mapper<Text, BytesWritable, Text, Text> {
