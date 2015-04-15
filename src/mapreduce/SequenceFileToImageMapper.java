@@ -64,7 +64,7 @@ public class SequenceFileToImageMapper extends
 		// using the LTrPFeatureExtractor
 		LTrPFeatureExtractor lfe = new LTrPFeatureExtractor(grayImage);
 		lfe.extractFeature();
-		int[] featureVector = lfe.getFeatureVector();
+		double[] featureVector = lfe.getFeatureVector();
 		String s = "";
 		/*
 		 * for (int i = 0; i < featureVector.length; i++) { s +=

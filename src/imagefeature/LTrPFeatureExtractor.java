@@ -19,12 +19,12 @@ public class LTrPFeatureExtractor {
 	private boolean isUniform[];
 	private static Log logger = LogFactory.getLog(LTrPFeatureExtractor.class);
 	private int histogram[][], index[];
-	private int[] featureVector = null;
+	private double[] featureVector = null;
 
 	public LTrPFeatureExtractor(BufferedImage img) {
 		grayImage = img;
 		width = grayImage.getWidth();
-		height = img.getHeight();
+		height = grayImage.getHeight();
 		byte[] pixel = null;
 		image = new int[height + 2][width + 2];
 		if (grayImage.getType() == BufferedImage.TYPE_BYTE_GRAY) {
@@ -255,11 +255,14 @@ public class LTrPFeatureExtractor {
 		// Only the features remain to be extracted
 
 		// set up the feature-vector
-		featureVector = new int[767];
+		featureVector = new double[767];
+		int n = width * height;
 		int c = 0;
 		for (int i = 0; i < 13; i++) {
 			for (int j = 0; j < 59; j++) {
-				featureVector[c++] = histogram[i][j];
+				featureVector[c] = histogram[i][j];
+				featureVector[c] /= (double) n;
+				c++;
 			}
 		}
 
@@ -269,7 +272,7 @@ public class LTrPFeatureExtractor {
 		mag = fod = null;
 	}
 
-	public int[] getFeatureVector() {
+	public double[] getFeatureVector() {
 		return featureVector;
 	}
 }
